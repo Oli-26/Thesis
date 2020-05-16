@@ -7,8 +7,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-
-
 def print_categories(df):
     ## Conversion form classification to category id(Useful for deciphering output)
     category_id_df = df[['classification', 'category_id']].drop_duplicates().sort_values('category_id')
@@ -45,12 +43,6 @@ def test_model(verbose, text_clf, X_train, X_test, y_train, y_test):
         #Show percentage of general prediction types 
         unique, counts = np.unique(general_predicted, return_counts=True)
         print(dict(zip(unique, counts*100/(len(general_predicted)))))
-        
-        ## This shows us examples of debt type 1 (design)
-        #comments_with_prediction = zip(X_test, general_predicted)
-        #for x in comments_with_prediction:
-        #    if(x[1] == 1):
-        #        print(x)
         print("---------------------------\n\n")
         
     return (np.mean(train_predicted == y_train), np.mean(general_predicted == y_test))
@@ -63,7 +55,6 @@ def train_naive_bayes(X_train, y_train, min_words):
     from sklearn.pipeline import Pipeline
     text_clf = Pipeline([('tfidf', tfidf), ('clf', MultinomialNB())])
     
-    
     text_clf.fit(X_train, y_train)
     return text_clf
    
@@ -73,18 +64,15 @@ def naive_bayes_model(df, verbose, min_words):
         
     ## Split dataset into training and testing. 3/1 ratio split.    
     X_train, X_test, y_train, y_test = train_test_split(df['commenttext'], df['category_id'], random_state = 10, train_size = 0.25)
-    
     text_clf = train_naive_bayes(X_train, y_train, min_words)
     acc = test_model(verbose, text_clf, X_train, X_test, y_train, y_test)
     return (text_clf, acc)
     
     
 def examples(clf):
-    # Test examples
     print(clf.predict(["This is poorly designed. We should change the char x to an int and then cast it later."]))
  
 def main(): 
-     
     ## MainBody
     from LoadData import load_from_file
     ## Init variables
