@@ -8,7 +8,4 @@ def cleanText(str):
         string = string + c
    return string 
    
-   
-   
-#print(cleanText("\\ \Hello, my name is__ oliver!"))
-
+  

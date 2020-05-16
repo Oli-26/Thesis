@@ -25,7 +25,7 @@ def plot_classification_frequency(df, number_of_examples, verbose):
     if(verbose):
         print("Statistics -")
         print(df.groupby('classification').commenttext.count()/(number_of_examples/100))
-        print("-------------")
+        print("-------------\n")
     
     
     
@@ -37,25 +37,31 @@ def plot_classification_frequency(df, number_of_examples, verbose):
     
 def extract_features(df):
     from sklearn.feature_extraction.text import TfidfVectorizer
-    tfidf = TfidfVectorizer(sublinear_tf=True, min_df=5, norm='l2', encoding='latin-1', ngram_range=(1, 2), stop_words='english')
+    tfidf = TfidfVectorizer(sublinear_tf=True, min_df=5, norm='l2', encoding='latin-1', ngram_range=(1, 3), stop_words='english')
     features = tfidf.fit_transform(df.commenttext).toarray()
     labels = df.category_id
     print("Feature set shape: " + str(features.shape) + "\n")
+    
 
 def train_model(df, verbose):
     if(verbose):
         extract_features(df)
-        
+  
     #Create learning model
     from sklearn.model_selection import train_test_split
     from sklearn.feature_extraction.text import CountVectorizer
     from sklearn.feature_extraction.text import TfidfTransformer
     from sklearn.naive_bayes import MultinomialNB
-    X_train, X_test, y_train, y_test = train_test_split(df['commenttext'], df['category_id'], random_state = 14)
+    X_train, X_test, y_train, y_test = train_test_split(df['commenttext'], df['category_id'], random_state = 10, train_size = 0.25)
+    
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    tfidf = TfidfVectorizer(sublinear_tf=True, min_df=10, norm='l2', encoding='latin-1', ngram_range=(1, 2), stop_words='english')
 
     # Pipe countvectorizer, tfidftransformer, and multinomial naivebayes together.
     from sklearn.pipeline import Pipeline
-    text_clf = Pipeline([('vect', CountVectorizer()), ('tfidf', TfidfTransformer()), ('clf', MultinomialNB())])
+    #Old method, performs less well #text_clf = Pipeline([('vect', CountVectorizer()), ('tfidf', TfidfTransformer()), ('clf', MultinomialNB())])
+    text_clf = Pipeline([('tfidf', tfidf), ('clf', MultinomialNB())])
+    
     text_clf.fit(X_train, y_train)
     
     
@@ -68,23 +74,19 @@ def train_model(df, verbose):
        
     
     
-    print("Testing ----")
+    print("Testing -----------------------")
     #Lets predit to see the train accuracy of our model
-    
     train_predicted = text_clf.predict(X_train)
-    print("General accuracy = " + str(np.mean(train_predicted == y_train)))
-    
+    print("Train accuracy = " + str(np.mean(train_predicted == y_train)))
     
     #Lets predict to see the generality of our model 
-
     general_predicted = text_clf.predict(X_test)    
-    
     print("Test accuracy = " + str(np.mean(general_predicted ==y_test)))
-    
+    #Show percentage of general prediction types 
     unique, counts = np.unique(general_predicted, return_counts=True)
-    print(dict(zip(unique, counts)))
-    
+    print(dict(zip(unique, counts*100/(len(general_predicted)))))
     print("---------------------------\n\n")
+    
     # return pipe.
     return text_clf
 
@@ -105,9 +107,11 @@ from LoadData import load_from_file
 
 # Load dataframe
 
-number_of_examples = 50000
+number_of_examples = 70000
 verbose = True
 df = load_from_file(address, amount = number_of_examples)
+
+number_of_examples = (df.shape[0])
 
 plot_classification_frequency(df, number_of_examples, verbose)
 clf = train_model(df, verbose)
