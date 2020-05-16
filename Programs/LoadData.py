@@ -18,7 +18,7 @@ def load_csv(address):
                     except:
                         i = i + 1
                         
-    print(str(i) + " rows failed to load")
+    print(str(i) + " rows failed to load \n")
     for_pd.seek(0)
     return for_pd
 
@@ -44,9 +44,6 @@ def load_from_file(filename, amount):
     df.columns = ['classification', 'commenttext']
     df['category_id'] = df['classification'].factorize()[0]
     
-   
-
-    #df = df.apply(lambda x: cleanText(x) if x.name == 'commenttext' else x)
     
     return df
     
