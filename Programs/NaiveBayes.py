@@ -1,7 +1,7 @@
 import pandas as pd
 from io import StringIO
 import re
-
+import numpy as np
 #Define file name 
 address = 'technical_debt_dataset.csv'
 
@@ -20,6 +20,10 @@ def plot_classification_frequency(df):
     # Plot count of different types
     import matplotlib.pyplot as plt
     fig = plt.figure(figsize=(8,6))
+    
+    
+    
+    print(df.groupby('classification').commenttext.count()/200)
     df.groupby('classification').commenttext.count().plot.bar(ylim=0)
     plt.show()
 
@@ -46,6 +50,27 @@ def train_model(df):
     text_clf.fit(X_train, y_train)
     
     
+    
+    
+    
+    #Lets take a look at out dataframe
+    print(df)
+       
+    
+
+    
+    #Lets predit to see the train accuracy of our model
+    
+    train_predicted = text_clf.predict(X_train)
+    print(" accuracy = " + str(np.mean(train_predicted == y_train)))
+    
+    
+    #Lets predict to see the generality of our model 
+
+    general_predicted = text_clf.predict(X_test)    
+    print("Test accuracy = " + str(np.mean(general_predicted ==y_test)))
+    
+
     # return pipe.
     return text_clf
 
@@ -53,7 +78,8 @@ def train_model(df):
 def examples(clf):
     # Test examples
     print(clf.predict(["This is poorly designed. We should change the char x to an int and then cast it later."]))
-
+    
+    
 
  
     
@@ -66,6 +92,7 @@ from LoadData import load_from_file
 # Load dataframe
 df = load_from_file(address, amount = 20000)
 
+plot_classification_frequency(df)
 extract_features(df)
 clf = train_model(df)
 examples(clf)

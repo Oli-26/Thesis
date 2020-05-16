@@ -4,15 +4,21 @@ import re
 from TextCleaner import cleanText
 
 def load_csv(address):
-    
+    i = 0
     for_pd = StringIO()
     with open(address) as f:
         for line in f:
             if(not line[0] == ' '): 
                 new_line = re.sub(r',', "___", line.rstrip(), count = 2)
+                segments = new_line.split("___")
                 if(not new_line == None):
-                    print(new_line, file=for_pd)
-
+                    try:
+                        new_line = segments[0] + "___" + segments[1] + "___" + cleanText(segments[2])
+                        print(new_line, file=for_pd)
+                    except:
+                        i = i + 1
+                        
+    print(str(i) + " rows failed to load")
     for_pd.seek(0)
     return for_pd
 
