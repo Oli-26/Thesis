@@ -17,7 +17,8 @@ def load_csv(address):
                         print(new_line, file=for_pd)
                     except:
                         i = i + 1
-                        
+                else:
+                    i = i + 1
     print(str(i) + " rows failed to load \n")
     for_pd.seek(0)
     return for_pd
