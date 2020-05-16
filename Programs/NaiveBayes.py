@@ -15,10 +15,7 @@ def print_categories(df):
     df.head()
     print(id_to_category)
 
-def classification_frequency(df, number_of_examples):
-    print("Statistics -")
-    print(df.groupby('classification').commenttext.count()/(number_of_examples/100))
-    print("-------------\n")
+
     
 def extract_features(df):
     ## A way to see the shape of the bag of words. Does not effect the output. Duplicated code - Should find a nicer way to do this from pipeline output if possible
@@ -32,7 +29,7 @@ def extract_features(df):
     
 def train_naive_bayes(X_train, y_train, min_words): 
     ## Create bag of words.
-    tfidf = TfidfVectorizer(sublinear_tf=True, min_df=min_words, norm='l2', encoding='latin-1', ngram_range=(1, 2))
+    tfidf = TfidfVectorizer(sublinear_tf=True, min_df=min_words, norm='l2', encoding='latin-1', ngram_range=(1, 2), max_df=0.85)
 
     ## Pipe functions together to create pipeable model.
     from sklearn.pipeline import Pipeline
@@ -41,8 +38,6 @@ def train_naive_bayes(X_train, y_train, min_words):
     model.fit(X_train, y_train)
     return model
    
-def naive_bayes_model(X_train, y_train, verbose, min_words):
-    model = train_naive_bayes(X_train, y_train, min_words)
-    return model
+
     
     
