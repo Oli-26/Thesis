@@ -36,17 +36,13 @@ def train_naive_bayes(X_train, y_train, min_words):
 
     ## Pipe functions together to create pipeable model.
     from sklearn.pipeline import Pipeline
-    text_clf = Pipeline([('tfidf', tfidf), ('clf', MultinomialNB())])
+    model = Pipeline([('tfidf', tfidf), ('clf', MultinomialNB())])
     
-    text_clf.fit(X_train, y_train)
-    return text_clf
+    model.fit(X_train, y_train)
+    return model
    
 def naive_bayes_model(X_train, y_train, verbose, min_words):
-    if verbose:
-        extract_features(df)
-
-    text_clf = train_naive_bayes(X_train, y_train, min_words)
-
-    return text_clf
+    model = train_naive_bayes(X_train, y_train, min_words)
+    return model
     
     

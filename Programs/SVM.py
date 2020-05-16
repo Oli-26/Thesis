@@ -18,13 +18,13 @@ def train_svm(X_train, y_train, min_words):
     from sklearn.neighbors import KNeighborsClassifier
 
     from sklearn.pipeline import Pipeline
-    text_clf = Pipeline([('tfidf', tfidf), ('svm', svm.SVC())])
+    model = Pipeline([('tfidf', tfidf), ('svm', svm.SVC())])
     
-    text_clf.fit(X_train, y_train)
-    return text_clf
+    model.fit(X_train, y_train)
+    return model
    
 def svm_model(X_train, y_train, verbose, min_words):
-    text_clf = train_svm(X_train, y_train, min_words = min_words)
-    return text_clf
+    model = train_svm(X_train, y_train, min_words = min_words)
+    return model
     
     

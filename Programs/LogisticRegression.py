@@ -16,13 +16,13 @@ def train_logistic_regression(X_train, y_train, min_words):
 
     ## Pipe functions together to create pipeable model.
     from sklearn.pipeline import Pipeline
-    text_clf = Pipeline([('tfidf', tfidf), ('lg', LogisticRegression(random_state=0))])
+    model = Pipeline([('tfidf', tfidf), ('lg', LogisticRegression(random_state=0))])
     
-    text_clf.fit(X_train, y_train)
-    return text_clf
+    model.fit(X_train, y_train)
+    return model
    
 def logistic_regression_model(X_train, y_train, verbose, min_words):
 
-    text_clf = train_logistic_regression(X_train, y_train, min_words = min_words)
+    model = train_logistic_regression(X_train, y_train, min_words = min_words)
 
-    return test_clf
+    return model
