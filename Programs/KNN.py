@@ -5,13 +5,13 @@ import numpy as np
 
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
-
+from NLP import create_vectorizer
     
 
     
-def train_knn(X_train, y_train, amount_neighbors, min_words): 
+def train_knn(X_train, y_train, amount_neighbors, min_df): 
     ## Create bag of words.
-    tfidf = TfidfVectorizer(sublinear_tf=True, min_df=min_words, norm='l2', encoding='latin-1', ngram_range=(1, 2), max_df=0.85)
+    tfidf = create_vectorizer(min_df)
 
     ## Pipe functions together to create pipeable model.
     from sklearn.pipeline import Pipeline

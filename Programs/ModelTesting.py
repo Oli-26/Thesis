@@ -65,7 +65,7 @@ def test_knn():
     iMax = 20
     for i in range(1, iMax):
         print("running for i = " + str(i))
-        m = train_knn(X_train, y_train, amount_neighbors = i, min_words = 10)
+        m = train_knn(X_train, y_train, amount_neighbors = i, min_df = 10)
         s = test_model(verbose, m, X_train, X_test, y_train, y_test)
         list.append(s)
     test_acc = [b for (a,b) in list]
@@ -83,7 +83,7 @@ def test_svm():
     iMax = 25
     for i in range(10, iMax):
         print("running for i = " + str(i))
-        m = train_svm(X_train, y_train, min_words = i)
+        m = train_svm(X_train, y_train, min_df = i)
         s = test_model(verbose, m, X_train, X_test, y_train, y_test)
         list.append(s)
     test_acc = [b for (a,b) in list]
@@ -102,7 +102,7 @@ def test_decision_tree():
     iMax = 25
     for i in range(10, iMax):
         print("running for i = " + str(i))
-        m = train_decision_tree(X_train, y_train, min_words = i)
+        m = train_decision_tree(X_train, y_train, min_df = i)
         s = test_model(verbose, m, X_train, X_test, y_train, y_test)
         list.append(s)
     test_acc = [b for (a,b) in list]
@@ -120,7 +120,7 @@ def test_logistic_regression():
     iMax = 25
     for i in range(10, iMax):
         print("running for i = " + str(i))
-        m = train_logistic_regression(X_train, y_train, min_words = i)
+        m = train_logistic_regression(X_train, y_train, min_df = i)
         s = test_model(verbose, m, X_train, X_test, y_train, y_test)
         list.append(s)
     test_acc = [b for (a,b) in list]
@@ -156,28 +156,28 @@ def compare_all():
     print("--------------------\n")
     
     print("LG STATS ----------")
-    x = train_logistic_regression(X_train, y_train, min_words = i)
+    x = train_logistic_regression(X_train, y_train, min_df = i)
     s = test_model(True, m, X_train, X_test, y_train, y_test)
     listTest.append(s[1])
     listTrain.append(s[0])
     print("--------------------\n")
     
     print("DT STATS ----------")
-    m = train_decision_tree(X_train, y_train, min_words = i)
+    m = train_decision_tree(X_train, y_train, min_df = i)
     s = test_model(True, m, X_train, X_test, y_train, y_test)
     listTest.append(s[1])
     listTrain.append(s[0])
     print("--------------------\n")
     
     print("SVM STATS ----------")
-    m = train_svm(X_train, y_train, min_words = i)
+    m = train_svm(X_train, y_train, min_df = i)
     s = test_model(True, m, X_train, X_test, y_train, y_test)
     listTest.append(s[1])
     listTrain.append(s[0])
     print("--------------------\n")
     
     print("KNN STATS ----------")
-    m = train_knn(X_train, y_train, amount_neighbors = 3, min_words = i)
+    m = train_knn(X_train, y_train, amount_neighbors = 3, min_df = i)
     s = test_model(True, m, X_train, X_test, y_train, y_test)
     listTest.append(s[1])
     listTrain.append(s[0])
@@ -198,4 +198,4 @@ def compare_all():
 #test_svm()    
 #test_knn()    
 #test_naive_bayes()
-compare_all()
+#compare_all()
