@@ -47,4 +47,25 @@ def load_from_file(filename, amount):
     
     
     return df
+def load_new(filename, amount):
+    address = filename
+    df = pd.read_csv(address, sep = ',', quotechar = '"', error_bad_lines = False, nrows = amount)
+    df.head()
+    
+    df = df[pd.notnull(df['label'])]
+    #df = df[df['annotation_approver'] == "Oliver"]
+    df['commenttext'] = df['text'].str.replace('[^\w\s]','') 
+    df['commenttext'] = df['commenttext'].str.replace('[\n\t]',' ') 
+    df['commenttext'] = df['commenttext'].str.lower()
+    
+    df['category_id'] = df['label'].factorize()[0]
+    
+    import numpy as np
+    unique, counts = np.unique(df['category_id'], return_counts=True)
+    print(dict(zip(unique, counts*100/(len(df['category_id'])))))
+    
+    #print(df)
+    return df
+    
+#load_new("file.csv", 10000)    
     

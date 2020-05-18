@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from LoadData import load_from_file
+from LoadData import load_from_file, load_new
 from sklearn.model_selection import train_test_split
 import numpy as np
 
@@ -78,7 +78,8 @@ def test_svm():
     number_of_examples = 20000
     verbose = False 
         
-    df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
+    #df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
+    df = load_new('file.csv', amount = number_of_examples)
     list = []
     iMax = 25
     for i in range(10, iMax):
@@ -134,13 +135,14 @@ def compare_all():
     number_of_examples = 100000
     verbose = False
     
-    df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
+    #df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
+    df = load_new('file.csv', amount = number_of_examples)
     X_train, X_test, y_train, y_test = split_data(df)
     
     
 
     print("Distribution -")
-    print(df.groupby('classification').commenttext.count()/(df.shape[0]/100))
+    print(df['category_id'].count()/(df.shape[0]/100))
     print("-------------\n")
     
     name_list = ["naive_bayes", "logistic_regression", "decision_tree", "svm", "knn"]
