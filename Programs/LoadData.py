@@ -45,6 +45,9 @@ def load_from_file(filename, amount):
     df.columns = ['classification', 'commenttext']
     df['category_id'] = df['classification'].factorize()[0]
     
+    import numpy as np
+    unique, counts = np.unique(df['category_id'], return_counts=True)
+    print(dict(zip(unique, counts*100/(len(df['category_id'])))))
     
     return df
 def load_new(filename, amount):
@@ -64,7 +67,7 @@ def load_new(filename, amount):
     unique, counts = np.unique(df['category_id'], return_counts=True)
     print(dict(zip(unique, counts*100/(len(df['category_id'])))))
     
-    #print(df)
+    #print(len(df['category_id']))
     return df
     
 #load_new("file.csv", 10000)    
