@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from LoadData import load_from_file, load_new
+from LoadData import load_from_file, load_new, split_by_project
 from sklearn.model_selection import train_test_split
 import numpy as np
 
@@ -12,15 +12,26 @@ from NaiveBayes import train_naive_bayes
 
 
 def split_data(df):
-    X_train, X_test, y_train, y_test = train_test_split(df['commenttext'], df['category_id'], random_state = 10, train_size = 0.25)
+    X_train, X_test, y_train, y_test = train_test_split(df['commenttext'], df['category_id'], random_state = 10, train_size = 0.66)
     return (X_train, X_test, y_train, y_test)
     
-def test_model(verbose, text_clf, X_train, X_test, y_train, y_test):
-    train_score = float(text_clf.score(X_train, y_train))
-    test_score = float(text_clf.score(X_test, y_test))
+def test_model(verbose, model, X_train, X_test, y_train, y_test):
+    train_score = float(model.score(X_train, y_train))
+    test_score = float(model.score(X_test, y_test))
+    
+    y_pred = model.predict(X_test)
+    #y_pred_bool = np.argmax(y_pred)
+    
+    from sklearn.metrics import classification_report, confusion_matrix
+    
+    #rounded_y_test = np.argmax(y_test)
+    #print(confusion_matrix(rounded_y_test, y_pred_bool))
+
+    print(classification_report(y_test, y_pred))
+    
     
     if verbose:
-        general_predicted = text_clf.predict(X_test)  
+        general_predicted = model.predict(X_test)  
         print("Train accuracy = " + str(train_score))
         print("Test accuracy = " + str(test_score))
         #Show percentage of general prediction types 
@@ -135,15 +146,14 @@ def compare_all():
     number_of_examples = 100000
     verbose = False
     
-    #df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
-    df = load_new('file.csv', amount = number_of_examples)
+    df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
+    #df = load_new('file.csv', amount = number_of_examples)
+    #list = split_by_project(df)
+
     X_train, X_test, y_train, y_test = split_data(df)
     
-    
+    print("Running on " + str(len(X_train)) + " samples.")
 
-    print("Distribution -")
-    print(df['category_id'].count()/(df.shape[0]/100))
-    print("-------------\n")
     
     name_list = ["naive_bayes", "logistic_regression", "decision_tree", "svm", "knn"]
     listTest = []
