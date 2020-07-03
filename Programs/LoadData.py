@@ -43,8 +43,11 @@ def load_from_file(filename, amount):
     df['category_id'] = codes
     #Print category types with the percent rate at which they occur.
     unique, counts = np.unique(df['category_id'], return_counts=True)
-    print(dict(zip(uniques, counts*100/(len(df['category_id'])))))
+    #print(dict(zip(uniques, counts*100/(len(df['category_id'])))))
 
+    v = np.vectorize(convert_to_binary)
+    df['category_id'] = v(df.classification)
+    
     return df
 
 def split_by_project(df):
@@ -53,6 +56,14 @@ def split_by_project(df):
     for i in range(0, len(unique)):
         return_structure.append(df[df['project'] == unique[i]])
     return return_structure
+    
+def convert_to_binary(x):
+    #print(x)
+    if(x == "WITHOUT_CLASSIFICATION"):
+        return 0
+    else:
+        return 1
+    
     
 def categorize(x):
     if x == 140 or x == 141 or x == 142: # arch

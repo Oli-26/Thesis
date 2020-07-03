@@ -6,14 +6,29 @@ from keras import layers
 import numpy as np
 from LoadData import load_from_file, load_new, split_by_project
 from ModelTesting import split_data
-from NLP import create_vectorizer
+from NLP import create_vectorizer, load_embeddings
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import StratifiedKFold
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.preprocessing.text import Tokenizer
 from keras.utils import to_categorical
+from keras.preprocessing.sequence import pad_sequences
 from sklearn.metrics import classification_report, confusion_matrix
+
 import pandas as pd
+import keras.backend as K
+from nltk.corpus import stopwords
+from nltk.tokenize import RegexpTokenizer 
+
+def get_f1(y_true, y_pred):
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    precision = true_positives / (predicted_positives + K.epsilon())
+    recall = true_positives / (possible_positives + K.epsilon())
+    f1_val = 2*(precision*recall)/(precision+recall+K.epsilon())
+    return f1_val
+
 def categorize_output_vector(y_train, y_test):
     #OneHotCode of outputs (used for multiclass classfication)
     from keras.utils import to_categorical
@@ -26,27 +41,51 @@ def categorize_output_vector(y_train, y_test):
         y_test = np.append(y_test, a, axis=1)
     return y_train, y_test
 
-def train_lstm():
-    number_of_examples = 50000
-    df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
-    #df = load_new('file.csv', amount = number_of_examples)
-
+def embed_words(df, nb_words, embed_dim):
+    tokenizer = RegexpTokenizer(r'\w+')
+    processed_comments = []
+    for comment in df['commenttext']:
+        tokens = tokenizer.tokenize(comment)
+        processed_comments.append(tokens)
+    
     tokenizer = Tokenizer(num_words=None,filters = '!##$%&()*+', lower = True, split = ' ')
-    tokenizer.fit_on_texts(df['commenttext'])
+    tokenizer.fit_on_texts(processed_comments)
+    X = tokenizer.texts_to_sequences(processed_comments)
+    X =  pad_sequences(X, 300)
+    
     word_index = tokenizer.word_index
     print('Found %s unique tokens.' % len(word_index))
     
-    from keras.preprocessing.sequence import pad_sequences
-    X = tokenizer.texts_to_sequences(df['commenttext'])
-    X =  pad_sequences(X, 200)
-
+    # Prepare embedding matrix
+    words_not_found = []
+    nb_words = min(nb_words, len(word_index)+1)
+    embedding_matrix = np.zeros((nb_words, embed_dim))
+    embedding_index = load_embeddings()
+    for word, i in word_index.items():
+        if i >= nb_words:
+            continue
+        embedding_vector = embedding_index.get(word)
+        if(embedding_vector is not None) and len(embedding_vector) > 0:
+            embedding_matrix[i] = embedding_vector
+        else:
+            words_not_found.append(word)
+    print('number of null word embeddings: %d' % np.sum(np.sum(embedding_matrix, axis=1) == 0))
+    return (X,embedding_matrix, nb_words)
+    
+def train_lstm():
+    number_of_examples = 1000
+    df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
+    nb_words = 5000
+    embed_dim = 300
+    
+    X, embedding_matrix, nb_words = embed_words(df, nb_words = nb_words, embed_dim = embed_dim)
     
     X_train, X_test, y_train, y_test = train_test_split(X, df['category_id'], random_state = 42, train_size = 0.75)
     y_train, y_test = categorize_output_vector(y_train, y_test)
     
     model = Sequential()
-    #Embedding layer that expects input dimension of 201, outputs 50 features per word.
-    model.add(layers.Embedding(len(word_index)+1, 50, input_length=X.shape[1]))
+    #Embedding layer
+    model.add(layers.Embedding(nb_words, embed_dim, weights=[embedding_matrix], input_length=300))
     #Dropout layer for sentence vectors
     model.add(layers.SpatialDropout1D(0.05))
     #Long short term memory layer
@@ -54,78 +93,65 @@ def train_lstm():
     #Output layer for classificaiton
     model.add(layers.Dense(y_train.shape[1], activation='softmax'))
     
-    model.compile(loss='categorical_crossentropy', optimizer= 'adam',  metrics=['acc'])
+    model.compile(loss='categorical_crossentropy', optimizer= 'adam',  metrics=[get_f1])
     
-    history = model.fit(X_train, y_train, epochs=30, batch_size=20,validation_data=(X_test, y_test), callbacks=[EarlyStopping(monitor='val_loss', patience=50, min_delta=0.0001)])
-    plot(history)
+    history = model.fit(X_train, y_train, epochs=10, batch_size=10,validation_data=(X_test, y_test), callbacks=[EarlyStopping(monitor='val_loss', patience=5, min_delta=0.0001)])
 
-
-    
 def train_mlp():
-    number_of_examples = 50000
-    df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
+    df = load_from_file('technical_debt_dataset.csv', amount = 50000)
     Global_y = to_categorical(df['category_id'])
+    unique = np.unique(df['project'])
+    Histories = []
     
-    listDf = split_by_project(df)
+    for i in range(0, len(unique)):
+        print("Running for test project " + str(unique[i]))
+        newDF = df[df['project'] != unique[i]]
+        test = df[df['project'] == unique[i]]
+        print("Train data = " + str(len(newDF)) + "  |  Test data = " + str(len(test)))
     
-    
-    
-    #X_train, X_test, y_train, y_test = train_test_split(X, y, random_state = 42, train_size = 0.70)
-    for dataframe in listDf:
-        X = dataframe['commenttext']
-        y = dataframe['category_id']
+        X = newDF['commenttext']
+        y = newDF['category_id']
         
+        test_x = test['commenttext']
+        test_y = test['category_id']
         
+        # Create vectorizer for words. Use this to determine input shape of predictor network. 
         tfidf = create_vectorizer(10)
         tfidf.fit(X)
-        #input_len = len(tfidf.get_feature_names())
-        #print(str(input_len) + " features found in " + str(len(X)) + " examples.")
-    
         X_v = tfidf.transform(X)
-        
         input_dim = X_v.shape[1]
-
+        
+        # Convert integer values of y to lists where int is implicit by index.
         y = to_categorical(y)
+        test_y = to_categorical(test_y)
+        # If the training set is missing categorisation from the global prediction, then add row of 0's to include this category to predition.
         while y.shape[1] < Global_y.shape[1]:
             a = np.zeros((y.shape[0], 1))
             y = np.append(y, a, axis=1)
+            
+            
+        while test_y.shape[1] < Global_y.shape[1]:
+            a = np.zeros((test_y.shape[0], 1))
+            test_y = np.append(test_y, a, axis=1)
             
             
         model = Sequential()
         model.add(layers.Dense(25, activation='elu', input_dim = input_dim))
         model.add(layers.Dense(Global_y.shape[1], activation='softmax'))
 
-        model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['acc'])
+        model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=[get_f1])
         
-        history = model.fit(X_v, y, epochs=10, verbose=False, batch_size=10)
-        
-        otherDataFrames = listDf
+        print("Begin model fitting")
+        history = model.fit(X_v, y, epochs=10, verbose=False, batch_size=10, validation_data = (tfidf.transform(test_x), test_y))
+        Histories.append(history)
+        print("Model fitting complete")
 
-        
-        prediction_store = []
-        true_value_store = [] 
-        
-        for odf in otherDataFrames:
-            if not pd.DataFrame.equals(odf, dataframe):
-            
-                test_x = odf['commenttext']
-                test_y = odf['category_id']
-                
-                y_pred = model.predict(tfidf.transform(test_x))
-                y_pred_bool = np.argmax(y_pred, axis=1)
-                
-                prediction_store = prediction_store + y_pred_bool.tolist()
-                true_value_store = true_value_store + test_y.tolist()
+        y_pred = model.predict(tfidf.transform(test_x))
+        y_pred_bool = np.argmax(y_pred, axis=1)     
 
-        
-        print(dataframe['project'].unique() + " (" + str(len(dataframe['project'])) + ")")
-
-        print(classification_report(true_value_store, prediction_store, zero_division=0))
-    #### Cross project validation
+        print(classification_report(test['category_id'], y_pred_bool, zero_division=0))
     
-    
-    
-  
+    plot(Histories)
     
 def train_cnn():
     number_of_examples = 50000
@@ -166,40 +192,26 @@ def train_cnn():
     classification(model, X_test, y_test)
     plot(history)
 
-
-    
-    
 def classification(model, X_test_v, y_test):
     y_pred = model.predict(X_test_v, batch_size=64, verbose=1)
     y_pred_bool = np.argmax(y_pred, axis=1)
-    
     rounded_y_test = np.argmax(y_test, axis=1)
-    #print(confusion_matrix(rounded_y_test, y_pred_bool))
     print(classification_report(rounded_y_test, y_pred_bool))
     
-def plot(history):
+def plot(historys):
     import matplotlib.pyplot as plt
     plt.style.use('ggplot')
-
-    acc = history.history['acc']
-    val_acc = history.history['val_acc']
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
-    x = range(1, len(acc) + 1)
-
     plt.figure(figsize=(12, 5))
-    plt.subplot(1, 2, 1)
-    plt.plot(x, acc, 'b', label='Training acc')
-    plt.plot(x, val_acc, 'r', label='Validation acc')
-    plt.title('Training and validation accuracy')
-    plt.legend()
-    plt.subplot(1, 2, 2)
-    plt.plot(x, loss, 'b', label='Training loss')
-    plt.plot(x, val_loss, 'r', label='Validation loss')
-    plt.title('Training and validation loss')
-    plt.legend()
+    i = 1
+    for history in historys:
+        f1 = history.history['get_f1']
+        x = range(1, len(f1) + 1)
+        plt.plot(x, f1, 'b', label='F1 - partition ' + str(i))
+        plt.title('F1 score')
+        plt.legend()
+        i = i +1
     plt.show()
 
-#train_lstm()
-train_mlp()
+train_lstm()
+#train_mlp()
 #train_cnn()    
