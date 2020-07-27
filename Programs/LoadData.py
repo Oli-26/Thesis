@@ -84,27 +84,56 @@ def categorize(x):
         return 6
     if x == 162: # none
         return 7
+
+def categorize_binary(x):
+    if x == 162:
+        return 0
+    else:
+        return 1
+        
     
+def create_project_column(x):
+    if "[IMPALA" in x:
+        return "IMPALA"
+    if "[HBASE" in x:
+        return "HBASE"
+    if "[THRIFT" in x:
+        return "THRIFT"
+    if "[CAMEL" in x:
+        return "CAMEL"
+    if "[HADOOP" in x:
+        return "HADOOP"
+        
+     
     
-def load_new(filename, amount):
+def load_new(filename, amount, binary):
     address = filename
     df = pd.read_csv(address, sep = ',', quotechar = '"', error_bad_lines = False, nrows = amount)
     df.head()
     df = df[pd.notnull(df['label'])]
+    
+    v = np.vectorize(create_project_column)
+    df['project'] = v(df.text)
+    
     
     # Clean comment strings.
     df['commenttext'] = df['text'].str.replace('[^\w\s]','') 
     df['commenttext'] = df['commenttext'].str.replace('[\n\t]',' ') 
     df['commenttext'] = df['commenttext'].str.lower()
     
-    # Convert categories into numeric form using categorize function. We reduce the number of categories into larger, more general super classes.
-    v = np.vectorize(categorize)
-    df['category_id'] = v(df.label)
+
+    if(binary):
+        v = np.vectorize(categorize_binary)
+        df['category_id'] = v(df.label)
+    else:
+        # Convert categories into numeric form using categorize function. We reduce the number of categories into larger, more general super classes.
+        v = np.vectorize(categorize)
+        df['category_id'] = v(df.label)
     
-    # Print out percentage occurance of different type of classification.
-    unique, counts = np.unique(df['category_id'], return_counts=True)
-    target_names = ['arch', 'build', 'code', 'defect', 'doc', 'requirements', 'test', 'none']
-    print(dict(zip(target_names, counts*100/(len(df['category_id'])))))
+        # Print out percentage occurance of different type of classification.
+        unique, counts = np.unique(df['category_id'], return_counts=True)
+        target_names = ['arch', 'build', 'code', 'defect', 'doc', 'requirements', 'test', 'none']
+        print(dict(zip(target_names, counts*100/(len(df['category_id'])))))
     return df
  
     

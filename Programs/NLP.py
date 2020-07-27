@@ -15,11 +15,15 @@ def load_embeddings():
     print('loading word embeddings...')
     embeddings_index = {}
     f = codecs.open('corpus.vec', encoding='utf-8')
+    i = 0 
     for line in tqdm(f):
         values = line.rstrip().rsplit(' ')
         word = values[0]
         coefs = np.asarray(values[1:], dtype='float32')
         embeddings_index[word] = coefs
+        i = i + 1
+        if i > 100000:
+            break;
     f.close()
     print('found %s word vectors' % len(embeddings_index))
     return embeddings_index
