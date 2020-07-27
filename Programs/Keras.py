@@ -212,8 +212,6 @@ def train_cnn():
 
         input_shape = Input(shape=(max_words,))
         
-
-
         x = layers.Embedding(nb_words, embed_dim, weights = [embedding_matrix])(input_shape)
         x = layers.Dropout(rate = 0.01)(x)        
         
@@ -235,7 +233,7 @@ def train_cnn():
 
         model.compile(loss='categorical_crossentropy', optimizer= 'adam',  metrics=[get_f1])
         history = model.fit(X_train, y_train, epochs=5, batch_size=10, validation_data = (X_val, to_categorical(y_val)))
-        #callbacks=[EarlyStopping(monitor='val_loss', patience=50, min_delta=0.0001)])
+
         classification(model, X_test, y_test)
         Histories.append(history)
     plot(Histories)
