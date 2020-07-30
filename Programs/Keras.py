@@ -168,7 +168,7 @@ def train_cnn():
     df = load_new('file.csv', amount = number_of_examples, binary=True)
 
     embed_dim = 300
-    max_words = 310
+    max_words = 1000
     filters = 300
     unigram_poolsize = 2
     bigram_poolsize = 2
@@ -194,7 +194,7 @@ def train_cnn():
             tokens = tokenizer.tokenize(comment)
             processed_comments_test.append(tokens)
         
-        
+
         tokenizer = Tokenizer(num_words=None,filters = '!##$%&()*+', lower = True, split = ' ')
         tokenizer.fit_on_texts(processed_comments_train + processed_comments_test)
         X_train = tokenizer.texts_to_sequences(processed_comments_train)
@@ -232,7 +232,7 @@ def train_cnn():
         print(model.summary())
 
         model.compile(loss='categorical_crossentropy', optimizer= 'adam',  metrics=[get_f1])
-        history = model.fit(X_train, y_train, epochs=5, batch_size=10, validation_data = (X_val, to_categorical(y_val)))
+        history = model.fit(X_train, y_train, epochs=15, batch_size=32, validation_data = (X_val, to_categorical(y_val)))
 
         classification(model, X_test, y_test)
         Histories.append(history)

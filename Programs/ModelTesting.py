@@ -146,8 +146,8 @@ def compare_all():
     number_of_examples = 100000
     verbose = False
     
-    df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
-    #df = load_new('file.csv', amount = number_of_examples)
+    #df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
+    df = load_new('file.csv', amount = number_of_examples, binary = True)
     #list = split_by_project(df)
 
     X_train, X_test, y_train, y_test = split_data(df)
