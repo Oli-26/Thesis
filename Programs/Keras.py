@@ -3,6 +3,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from keras.models import Sequential
 from keras import layers, Input, Model
+from keras.callbacks import EarlyStopping
 import numpy as np
 from LoadData import load_from_file, load_new, split_by_project
 from ModelTesting import split_data
@@ -19,6 +20,7 @@ import pandas as pd
 import keras.backend as K
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer 
+import tensorflow as tf
 
 def get_f1(y_true, y_pred):
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
@@ -99,7 +101,8 @@ def train_lstm():
     plot([history])
     
 def train_mlp():
-    df = load_from_file('technical_debt_dataset.csv', amount = 500)
+    #df = load_from_file('technical_debt_dataset.csv', amount = 500)
+    df = load_new('file.csv', amount = 10000, binary=True)
     Global_y = to_categorical(df['category_id'])
     unique = np.unique(df['project'])
     Histories = []
@@ -113,45 +116,37 @@ def train_mlp():
         X = newDF['commenttext']
         y = newDF['category_id']
         
-        test_x = test['commenttext']
-        test_y = test['category_id']
+        X_test = test['commenttext']
+        y_test = test['category_id']
         
         # Create vectorizer for words. Use this to determine input shape of predictor network. 
         tfidf = create_vectorizer(10)
         tfidf.fit(X)
         X_v = tfidf.transform(X)
         input_dim = X_v.shape[1]
-        
+        #print(X_v)
+        X_v = tf.sparse.to_dense(X_v)
         # Convert integer values of y to lists where int is implicit by index.
         y = to_categorical(y)
-        test_y = to_categorical(test_y)
-        # If the training set is missing categorisation from the global prediction, then add row of 0's to include this category to predition.
-        while y.shape[1] < Global_y.shape[1]:
-            a = np.zeros((y.shape[0], 1))
-            y = np.append(y, a, axis=1)
-            
-            
-        while test_y.shape[1] < Global_y.shape[1]:
-            a = np.zeros((test_y.shape[0], 1))
-            test_y = np.append(test_y, a, axis=1)
-            
+        y_test = to_categorical(y_test)
+     
+        X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, random_state = 42, train_size = 0.5)    
             
         model = Sequential()
-        dense1 = layers.Dense(25, activation='elu', input_dim = input_dim)
-        model.add(dense1)
-        model.add(layers.Dense(Global_y.shape[1], activation='softmax'))
+        model.add(layers.Dense(25, activation='elu', input_dim = input_dim))
+        model.add(layers.Dense(Global_y.shape[1], activation='sigmoid'))
 
         model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=[get_f1])
         
         print("Begin model fitting")
-        history = model.fit(X_v, y, epochs=10, verbose=False, batch_size=10, validation_data = (tfidf.transform(test_x), test_y))
+        history = model.fit(X_v, y, epochs=10, verbose=False, batch_size=10, validation_data = (tfidf.transform(X_val), y_val))
         Histories.append(history)
         print("Model fitting complete")
 
-        y_pred = model.predict(tfidf.transform(test_x))
+        y_pred = model.predict(tfidf.transform(X_test))
         y_pred_bool = np.argmax(y_pred, axis=1)     
 
-        print(classification_report(test['category_id'], y_pred_bool, zero_division=0))
+        print(classification_report(y_test, y_pred_bool, zero_division=0))
         
         weights = dense1.get_weights()
         words = tfidf.get_feature_names()
@@ -162,6 +157,7 @@ def train_mlp():
         #    print(str(sorted_list[i][0]))
     
     plot(Histories)
+
     
 def train_cnn():
     number_of_examples = 10000
@@ -170,8 +166,8 @@ def train_cnn():
     embed_dim = 300
     max_words = 1000
     filters = 300
-    unigram_poolsize = 2
-    bigram_poolsize = 2
+    unigram_poolsize = max_words
+    bigram_poolsize = max_words-1
     Global_y = to_categorical(df['category_id'])
     unique = np.unique(df['project'])
     Histories = []
@@ -216,23 +212,24 @@ def train_cnn():
         x = layers.Dropout(rate = 0.01)(x)        
         
         y = (layers.Conv1D(filters,1,activation='relu'))(x)
-        y = (layers.MaxPooling1D(pool_size=unigram_poolsize,strides=2, padding='valid'))(y)
+        y = (layers.MaxPooling1D(pool_size=unigram_poolsize,strides=1, padding='valid'))(y)
         y = (layers.Flatten())(y)
         
         z = (layers.Conv1D(filters,2,activation='relu'))(x)
-        z = (layers.MaxPooling1D(pool_size=bigram_poolsize,strides=2, padding='valid'))(z)
+        z = (layers.MaxPooling1D(pool_size=bigram_poolsize,strides=1, padding='valid'))(z)
         z = (layers.Flatten())(z)
         
         x = layers.Concatenate(axis=1)([y, z])
         x = layers.Dense(1)(x)
         
-        x = (layers.Dense(Global_y.shape[1], activation='softmax'))(x)
+        x = (layers.Dense(Global_y.shape[1], activation='sigmoid'))(x)
        
         model = Model(input_shape,x)
         print(model.summary())
-
-        model.compile(loss='categorical_crossentropy', optimizer= 'adam',  metrics=[get_f1])
-        history = model.fit(X_train, y_train, epochs=15, batch_size=32, validation_data = (X_val, to_categorical(y_val)))
+        
+        callback = EarlyStopping(patience=2)
+        model.compile(loss='binary_crossentropy', optimizer= 'adam',  metrics=[get_f1])
+        history = model.fit(X_train, y_train, epochs=15, batch_size=32, verbose = False, validation_data = (X_val, to_categorical(y_val)),callbacks=[callback])
 
         classification(model, X_test, y_test)
         Histories.append(history)
@@ -261,5 +258,5 @@ def plot(historys):
     plt.show()
 
 #train_lstm()
-#train_mlp()
-train_cnn()    
+train_mlp()
+#train_cnn()    

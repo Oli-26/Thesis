@@ -20,12 +20,8 @@ def test_model(verbose, model, X_train, X_test, y_train, y_test):
     test_score = float(model.score(X_test, y_test))
     
     y_pred = model.predict(X_test)
-    #y_pred_bool = np.argmax(y_pred)
     
     from sklearn.metrics import classification_report, confusion_matrix
-    
-    #rounded_y_test = np.argmax(y_test)
-    #print(confusion_matrix(rounded_y_test, y_pred_bool))
 
     print(classification_report(y_test, y_pred))
     
@@ -38,107 +34,8 @@ def test_model(verbose, model, X_train, X_test, y_train, y_test):
         unique, counts = np.unique(general_predicted, return_counts=True)
         print(dict(zip(unique, counts*100/(len(general_predicted)))))
 
-    
     return (train_score, test_score)
     
-    
-def test_naive_bayes():
-    ## Init variables
-    number_of_examples = 20000
-    verbose = False
-    
-    df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
-    X_train, X_test, y_train, y_test = split_data(df)
-    
-    list = []
-    iMax = 25
-    for i in range(5,iMax):
-        print("running for i = " + str(i))
-        m = train_naive_bayes_model(X_train, y_train, i)
-        s = test_model(verbose, m, X_train, X_test, y_train, y_test)
-        list.append(s)
-    test_acc = [b for  (a,b) in list]
-    
-    
-    fig = plt.figure(figsize=(8,6))
-    plt.scatter(range(5,iMax), test_acc)
-    plt.show()
-    
-    
-    
-def test_knn():
-     ## Init variables
-    number_of_examples = 20000
-    verbose = False 
-        
-    df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
-    list = []
-    iMax = 20
-    for i in range(1, iMax):
-        print("running for i = " + str(i))
-        m = train_knn(X_train, y_train, amount_neighbors = i, min_df = 10)
-        s = test_model(verbose, m, X_train, X_test, y_train, y_test)
-        list.append(s)
-    test_acc = [b for (a,b) in list]
-    fig = plt.figure(figsize=(8,6))
-    plt.scatter(range(1,iMax), test_acc)
-    plt.show()
-    
-def test_svm():
-     ## Init variables
-    number_of_examples = 20000
-    verbose = False 
-        
-    #df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
-    df = load_new('file.csv', amount = number_of_examples)
-    list = []
-    iMax = 25
-    for i in range(10, iMax):
-        print("running for i = " + str(i))
-        m = train_svm(X_train, y_train, min_df = i)
-        s = test_model(verbose, m, X_train, X_test, y_train, y_test)
-        list.append(s)
-    test_acc = [b for (a,b) in list]
-    fig = plt.figure(figsize=(8,6))
-    plt.scatter(range(10,iMax), test_acc)
-    plt.show()
- 
-
-def test_decision_tree():
-    ## Init variables
-    number_of_examples = 20000
-    verbose = False 
-        
-    df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
-    list = []
-    iMax = 25
-    for i in range(10, iMax):
-        print("running for i = " + str(i))
-        m = train_decision_tree(X_train, y_train, min_df = i)
-        s = test_model(verbose, m, X_train, X_test, y_train, y_test)
-        list.append(s)
-    test_acc = [b for (a,b) in list]
-    fig = plt.figure(figsize=(8,6))
-    plt.scatter(range(10,iMax), test_acc)
-    plt.show()
-
-def test_logistic_regression():
-    ## Init variables
-    number_of_examples = 20000
-    verbose = False 
-        
-    df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
-    list = []
-    iMax = 25
-    for i in range(10, iMax):
-        print("running for i = " + str(i))
-        m = train_logistic_regression(X_train, y_train, min_df = i)
-        s = test_model(verbose, m, X_train, X_test, y_train, y_test)
-        list.append(s)
-    test_acc = [b for (a,b) in list]
-    fig = plt.figure(figsize=(8,6))
-    plt.scatter(range(10,iMax), test_acc)
-    plt.show()
 
     
 def compare_all():
