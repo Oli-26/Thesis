@@ -21,10 +21,10 @@ def load_embeddings():
         coefs = np.asarray(values[1:], dtype='float32')
         embeddings_index[word] = coefs
         i = i + 1
-        if i > 100000:
-            break;
+        #if i > 1000:
+        #    break;
     f.close()
-    print('found %s word vectors' % len(embeddings_index))
+    #print('found %s word vectors' % len(embeddings_index))
     return embeddings_index
 
     

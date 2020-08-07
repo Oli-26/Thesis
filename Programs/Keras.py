@@ -1,5 +1,5 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
 from keras.models import Sequential
 from keras import layers, Input, Model
@@ -22,6 +22,8 @@ from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer 
 import tensorflow as tf
 
+
+
 def get_f1(y_true, y_pred):
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
@@ -36,7 +38,7 @@ def categorize_output_vector(y_train, y_test):
     from keras.utils import to_categorical
     y_train = to_categorical(y_train)
     y_test = to_categorical(y_test)
-    
+
     # Quick fix for mismatched dimensions, adds an arrays of 0's for each absent category
     while y_train.shape[1] > y_test.shape[1]:
         a = np.zeros((y_test.shape[0], 1))
@@ -52,12 +54,8 @@ def embed_words(df, embed_dim, embedding_index):
     
     tokenizer = Tokenizer(num_words=None,filters = '!##$%&()*+', lower = True, split = ' ')
     tokenizer.fit_on_texts(processed_comments)
-    X = tokenizer.texts_to_sequences(processed_comments)
-    X = pad_sequences(X, 300)    
-
     word_index = tokenizer.word_index
-    print('Found %s unique tokens.' % len(word_index))
-    
+
     # Prepare embedding matrix
     words_not_found = []
     nb_words = len(word_index)+1
@@ -70,8 +68,8 @@ def embed_words(df, embed_dim, embedding_index):
             embedding_matrix[i] = embedding_vector
         else:
             words_not_found.append(word)
-    print('number of null word embeddings: %d' % np.sum(np.sum(embedding_matrix, axis=1) == 0))
-    return (X, embedding_matrix, nb_words)
+    #print('number of null word embeddings: %d' % np.sum(np.sum(embedding_matrix, axis=1) == 0))
+    return (embedding_matrix, nb_words, tokenizer)
     
 def train_lstm():
     number_of_examples = 1000
@@ -158,88 +156,115 @@ def train_mlp():
     
     plot(Histories)
 
-    
-def train_cnn():
-    number_of_examples = 10000
-    df = load_new('file.csv', amount = number_of_examples, binary=True)
 
+def types():
+    types = ["general"]  #, "arch", "code", "build", "defect", "design", "documentation", "requirements", "test"]
+    embedding_index = load_embeddings()
+    for i in range(0, len(types)):
+        print("Running for type = " + types[i])
+        cross_project_validation(types[i], embedding_index)
+        
+    
+def cross_project_validation(type, embedding_index):
+    ## Trains and test CNN multiple times, leaving one project out for testing each time.
+    #df = load_new('file.csv', amount = 10000, type = type)
+    df = load_from_file('technical_debt_dataset.csv', amount = 10000)
+    
+    unique = np.unique(df['project'])
+    Histories = []
+    Models = []
+    debt_f1 = []
+    for i in range(0, len(unique)):
+        newDF = df[df['project'] != unique[i]]
+        test = df[df['project'] == unique[i]]
+        print("Running for test project " + str(unique[i]) + "(" + str(len(test['category_id'])) + "," + str(len(newDF['category_id'])) + ")")
+        history, model, report = train_cnn(df, newDF, test, embedding_index)
+        Histories.append(history)
+        Models.append(model)
+        debt_f1.append(report['1']['f1-score'])
+    av_debt = sum(debt_f1)/len(unique)
+    index = debt_f1.index(max(debt_f1))
+    
+    print("Average debt f1 score = " + str(av_debt))
+    #plot(Histories)
+    #from KeyWords import extract_key_words
+    Models[index].save('m2')
+    #£extract_key_words(Models[0], df, type)
+    
+def train_cnn(df, newDF, test, embedding_index):  
     embed_dim = 300
     max_words = 1000
     filters = 300
     unigram_poolsize = max_words
     bigram_poolsize = max_words-1
     Global_y = to_categorical(df['category_id'])
-    unique = np.unique(df['project'])
-    Histories = []
-    embedding_index = load_embeddings()
     
-    for i in range(0, len(unique)):
-        print("Running for test project " + str(unique[i]))
-        newDF = df[df['project'] != unique[i]]
-        test = df[df['project'] == unique[i]]
-        
-        X, embedding_matrix, nb_words = embed_words(df, embed_dim = embed_dim, embedding_index = embedding_index)  
-        
-        tokenizer = RegexpTokenizer(r'\w+')
-        processed_comments_train = []
-        processed_comments_test = []
-        for comment in newDF['commenttext']:
-            tokens = tokenizer.tokenize(comment)
-            processed_comments_train.append(tokens)
-        for comment in test['commenttext']:
-            tokens = tokenizer.tokenize(comment)
-            processed_comments_test.append(tokens)
-        
+    # Load embedding matrix
+    embedding_matrix, nb_words, loaded_tokenizer = embed_words(df, embed_dim = embed_dim, embedding_index = embedding_index)  
+    
+    # Tokenize train and test comments.
+    tokenizer = RegexpTokenizer(r'\w+')
+    processed_comments_train = []
+    processed_comments_test = []
+    for comment in newDF['commenttext']:
+        tokens = tokenizer.tokenize(comment)
+        processed_comments_train.append(tokens)
+    for comment in test['commenttext']:
+        tokens = tokenizer.tokenize(comment)
+        processed_comments_test.append(tokens)
+    X_train = loaded_tokenizer.texts_to_sequences(processed_comments_train)
+    X_train = pad_sequences(X_train, max_words)    
+    X_test = loaded_tokenizer.texts_to_sequences(processed_comments_test)
+    X_test = pad_sequences(X_test, max_words)            
+  
+    y_train = newDF['category_id']
+    y_test = test['category_id']
+ 
+    # Convert output binary values into length 2 array (one hot vector incoding)
+    y_train, y_test = categorize_output_vector(y_train, y_test)
+    
+    # Split into training validation and final (test) validation sets.
+    X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, random_state = 42, train_size = 0.5)
 
-        tokenizer = Tokenizer(num_words=None,filters = '!##$%&()*+', lower = True, split = ' ')
-        tokenizer.fit_on_texts(processed_comments_train + processed_comments_test)
-        X_train = tokenizer.texts_to_sequences(processed_comments_train)
-        X_train = pad_sequences(X_train, max_words)    
-        
-        X_test = tokenizer.texts_to_sequences(processed_comments_test)
-        X_test = pad_sequences(X_test, max_words)            
-        
-        y_train = newDF['category_id']
-        y_test = test['category_id']
-        
-        X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, random_state = 42, train_size = 0.5)
-        
-        y_train, y_test = categorize_output_vector(y_train, y_test)
 
-        input_shape = Input(shape=(max_words,))
-        
-        x = layers.Embedding(nb_words, embed_dim, weights = [embedding_matrix])(input_shape)
-        x = layers.Dropout(rate = 0.01)(x)        
-        
-        y = (layers.Conv1D(filters,1,activation='relu'))(x)
-        y = (layers.MaxPooling1D(pool_size=unigram_poolsize,strides=1, padding='valid'))(y)
-        y = (layers.Flatten())(y)
-        
-        z = (layers.Conv1D(filters,2,activation='relu'))(x)
-        z = (layers.MaxPooling1D(pool_size=bigram_poolsize,strides=1, padding='valid'))(z)
-        z = (layers.Flatten())(z)
-        
-        x = layers.Concatenate(axis=1)([y, z])
-        x = layers.Dense(1)(x)
-        
-        x = (layers.Dense(Global_y.shape[1], activation='sigmoid'))(x)
-       
-        model = Model(input_shape,x)
-        print(model.summary())
-        
-        callback = EarlyStopping(patience=2)
-        model.compile(loss='binary_crossentropy', optimizer= 'adam',  metrics=[get_f1])
-        history = model.fit(X_train, y_train, epochs=15, batch_size=32, verbose = False, validation_data = (X_val, to_categorical(y_val)),callbacks=[callback])
-
-        classification(model, X_test, y_test)
-        Histories.append(history)
-    plot(Histories)
+    # Create network
+    input_shape = Input(shape=(max_words,))
+    
+    x = layers.Embedding(nb_words, embed_dim, weights = [embedding_matrix])(input_shape)
+    x = layers.Dropout(rate = 0.01)(x)        
+    
+    ## Branch 1 (Unigram)
+    y = (layers.Conv1D(filters,1,activation='relu'))(x)
+    y = (layers.MaxPooling1D(pool_size=unigram_poolsize,strides=1, padding='valid'))(y)
+    y = (layers.Flatten())(y)
+    
+    ## Branch 2 (Bigram)
+    z = (layers.Conv1D(filters,2,activation='relu'))(x)
+    z = (layers.MaxPooling1D(pool_size=bigram_poolsize,strides=1, padding='valid'))(z)
+    z = (layers.Flatten())(z)
+    
+    x = layers.Concatenate(axis=1)([y, z])
+    x = layers.Dense(1)(x)
+    x = (layers.Dense(Global_y.shape[1], activation='sigmoid'))(x)
+   
+    model = Model(input_shape,x)  
+    callback = EarlyStopping(patience=2)
+    model.compile(loss='binary_crossentropy', optimizer= 'adam',  metrics=[get_f1])
+    history = model.fit(X_train, y_train, epochs=15, batch_size=32, verbose = False ,callbacks=[callback], validation_data = (X_val, y_val))
+    
+    print(model.summary())
+    report = classification(model, X_test, y_test)
+    print(report['0'])
+    print(report['1'])
+    
+    return (history, model, report)
     
 def classification(model, X_test_v, y_test):
     y_pred = model.predict(X_test_v, batch_size=64, verbose=1)
     y_pred_bool = np.argmax(y_pred, axis=1)
     rounded_y_test = np.argmax(y_test, axis=1)
-    print(classification_report(rounded_y_test, y_pred_bool))
+    report = classification_report(rounded_y_test, y_pred_bool, output_dict=True)
+    return report
     
 def plot(historys):
     import matplotlib.pyplot as plt
@@ -258,5 +283,6 @@ def plot(historys):
     plt.show()
 
 #train_lstm()
-train_mlp()
-#train_cnn()    
+#train_mlp()
+#train_cnn()  
+#types()  

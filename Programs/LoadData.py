@@ -80,11 +80,60 @@ def categorize(x):
         return 4
     if x == 157 or x == 158: # requirements
         return 5
-    if x == 159 or x == 160 or x == 161: # rest
+    if x == 159 or x == 160 or x == 161: # test
         return 6
     if x == 162: # none
         return 7
 
+def categorize_type(x, t):
+    if t == "code":
+        if x >= 146 and x <= 152:
+            return 1
+        else: 
+            return 0
+    if t == "arch":
+        if x == 140 or x == 141 or x == 142:
+            return 1
+        else:
+            return 0
+    if t == "build":
+        if x == 143 or x == 144 or x == 145:
+            return 1
+        else:
+            return 0
+    if t == "defect":
+        if x == 153:
+            return 1
+        else:
+            return 0
+    if t == "design":
+        if x == 154:
+            return 1
+        else:
+            return 0
+    if t == "documentation":
+        if x == 155 or x == 156:
+            return 1
+        else:
+            return 0
+    if t == "requirements":
+        if x == 157 or x == 158:
+            return 1
+        else: 
+            return 0
+    if t == "test":
+        if x == 159 or x == 160 or x == 161:
+            return 1
+        else:
+            return 0
+    if t == "general":
+        if x == 162:
+            return 0
+        else:
+            return 1
+            
+            
+            
 def categorize_binary(x):
     if x == 162:
         return 0
@@ -106,7 +155,7 @@ def create_project_column(x):
         
      
     
-def load_new(filename, amount, binary):
+def load_new(filename, amount, type):
     address = filename
     df = pd.read_csv(address, sep = ',', quotechar = '"', error_bad_lines = False, nrows = amount)
     df.head()
@@ -122,18 +171,15 @@ def load_new(filename, amount, binary):
     df['commenttext'] = df['commenttext'].str.lower()
     
 
-    if(binary):
-        v = np.vectorize(categorize_binary)
-        df['category_id'] = v(df.label)
-    else:
-        # Convert categories into numeric form using categorize function. We reduce the number of categories into larger, more general super classes.
-        v = np.vectorize(categorize)
-        df['category_id'] = v(df.label)
     
-        # Print out percentage occurance of different type of classification.
-        unique, counts = np.unique(df['category_id'], return_counts=True)
-        target_names = ['arch', 'build', 'code', 'defect', 'doc', 'requirements', 'test', 'none']
-        print(dict(zip(target_names, counts*100/(len(df['category_id'])))))
+    v = np.vectorize(categorize_type)
+    df['category_id'] = v(df.label, type)
+ 
+    
+    # Print out percentage occurance of different type of classification.
+    #unique, counts = np.unique(df['category_id'], return_counts=True)
+    #target_names = ['arch', 'build', 'code', 'defect', 'doc', 'requirements', 'test', 'none']
+    #print(dict(zip(target_names, counts*100/(len(df['category_id'])))))
     return df
  
     
