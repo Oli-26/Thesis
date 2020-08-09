@@ -43,68 +43,80 @@ def compare_all():
     number_of_examples = 100000
     verbose = False
     
-    #df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
-    df = load_new('file.csv', amount = number_of_examples, binary = True)
+    df = load_from_file('technical_debt_dataset.csv', amount = number_of_examples)
+    #df = load_new('file.csv', amount = number_of_examples, binary = True)
+    
     #list = split_by_project(df)
+    unique = np.unique(df['project'])
+    Histories = []
+    
+    for i in range(0, len(unique)):
+        print("Running for test project " + str(unique[i]))
+        newDF = df[df['project'] != unique[i]]
+        test = df[df['project'] == unique[i]]
+        print("Train data = " + str(len(newDF)) + "  |  Test data = " + str(len(test)))
 
-    X_train, X_test, y_train, y_test = split_data(df)
-    
-    print("Running on " + str(len(X_train)) + " samples.")
+        #X_train, X_test, y_train, y_test = split_data(df)
+        X_train = newDF['commenttext']
+        X_test = test['commenttext']
+        y_train = newDF['category_id']
+        y_test = test['category_id']
+        print("Running on " + str(len(X_train)) + " samples.")
 
-    
-    name_list = ["naive_bayes", "logistic_regression", "decision_tree", "svm", "knn"]
-    listTest = []
-    listTrain = []
-    i = 10
-    
-    print("NaiveBayes STATS ----------")
-    m = train_naive_bayes(X_train, y_train, i)
-    s = test_model(True, m, X_train, X_test, y_train, y_test)
-    listTest.append(s[1])
-    listTrain.append(s[0])
-    print("--------------------\n")
-    
-    print("LG STATS ----------")
-    x = train_logistic_regression(X_train, y_train, min_df = i)
-    s = test_model(True, m, X_train, X_test, y_train, y_test)
-    listTest.append(s[1])
-    listTrain.append(s[0])
-    print("--------------------\n")
-    
-    print("DT STATS ----------")
-    m = train_decision_tree(X_train, y_train, min_df = i)
-    s = test_model(True, m, X_train, X_test, y_train, y_test)
-    listTest.append(s[1])
-    listTrain.append(s[0])
-    print("--------------------\n")
-    
-    print("SVM STATS ----------")
-    m = train_svm(X_train, y_train, min_df = i)
-    s = test_model(True, m, X_train, X_test, y_train, y_test)
-    listTest.append(s[1])
-    listTrain.append(s[0])
-    print("--------------------\n")
-    
-    print("KNN STATS ----------")
-    m = train_knn(X_train, y_train, amount_neighbors = 3, min_df = i)
-    s = test_model(True, m, X_train, X_test, y_train, y_test)
-    listTest.append(s[1])
-    listTrain.append(s[0])
-    print("--------------------\n")   
-    
-    
-    feature_array = np.array(m['tfidf'].get_feature_names())
-    print("Discovered = "  + str(len(feature_array)) + " features.")
-    print("Ran on " + str(df.shape[0]) + " examples.")
-      
-    fig = plt.figure(figsize=(8,6))
-    plt.scatter(name_list, listTest)
-    plt.scatter(name_list, listTrain)
-    plt.show()
+        
+        name_list = ["naive_bayes", "logistic_regression", "decision_tree", "svm", "knn"]
+        listTest = []
+        listTrain = []
+        i = 10
+        
+        print("NaiveBayes STATS ----------")
+        m = train_naive_bayes(X_train, y_train, i)
+        s = test_model(True, m, X_train, X_test, y_train, y_test)
+        listTest.append(s[1])
+        listTrain.append(s[0])
+        print("--------------------\n")
+        
+        print("LG STATS ----------")
+        x = train_logistic_regression(X_train, y_train, min_df = i)
+        s = test_model(True, m, X_train, X_test, y_train, y_test)
+        listTest.append(s[1])
+        listTrain.append(s[0])
+        print("--------------------\n")
+        
+        print("DT STATS ----------")
+        m = train_decision_tree(X_train, y_train, min_df = i)
+        s = test_model(True, m, X_train, X_test, y_train, y_test)
+        listTest.append(s[1])
+        listTrain.append(s[0])
+        print("--------------------\n")
+        
+        print("SVM STATS ----------")
+        m = train_svm(X_train, y_train, min_df = i)
+        s = test_model(True, m, X_train, X_test, y_train, y_test)
+        listTest.append(s[1])
+        listTrain.append(s[0])
+        print("--------------------\n")
+        
+        print("KNN STATS ----------")
+        m = train_knn(X_train, y_train, amount_neighbors = 3, min_df = i)
+        s = test_model(True, m, X_train, X_test, y_train, y_test)
+        listTest.append(s[1])
+        listTrain.append(s[0])
+        print("--------------------\n")   
+        
+        
+        feature_array = np.array(m['tfidf'].get_feature_names())
+        print("Discovered = "  + str(len(feature_array)) + " features.")
+        print("Ran on " + str(df.shape[0]) + " examples.")
+          
+        fig = plt.figure(figsize=(8,6))
+        plt.scatter(name_list, listTest)
+        plt.scatter(name_list, listTrain)
+        plt.show()
     
 #test_logistic_regression()
 #test_decision_tree()    
 #test_svm()    
 #test_knn()    
 #test_naive_bayes()
-#compare_all()
+compare_all()
