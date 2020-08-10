@@ -168,13 +168,14 @@ def types():
 def cross_project_validation(type, embedding_index):
     ## Trains and test CNN multiple times, leaving one project out for testing each time.
     #df = load_new('file.csv', amount = 10000, type = type)
-    df = load_from_file('technical_debt_dataset.csv', amount = 10000)
+    df = load_from_file('technical_debt_dataset.csv', amount = 100000)
     
     unique = np.unique(df['project'])
     Histories = []
     Models = []
     debt_f1 = []
-    for i in range(0, len(unique)):
+    #for i in range(0, len(unique)):
+    for i in range(0, 1):
         newDF = df[df['project'] != unique[i]]
         test = df[df['project'] == unique[i]]
         print("Running for test project " + str(unique[i]) + "(" + str(len(test['category_id'])) + "," + str(len(newDF['category_id'])) + ")")
