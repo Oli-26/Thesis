@@ -10,7 +10,7 @@ from LoadData import load_from_file, load_new
 from Keras import get_f1
 import keras.backend as K
 import numpy as np
-
+from nltk.corpus import stopwords
 
 import tensorflow as tf
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -48,10 +48,14 @@ def extract_key_words(df, type):
     tokenizer = RegexpTokenizer(r'\w+')
     
     # tokenize dataset
+    cachedStopWords = stopwords.words("english")
+    
     processed_comments = []
     for comment in df['commenttext']:
         tokens = tokenizer.tokenize(comment)
-        processed_comments.append(tokens)
+        text = ' '.join([word for word in tokens if word not in cachedStopWords])
+        
+        processed_comments.append(text)
     tokenizer = Tokenizer(num_words=None,filters = '!##$%&()*+', lower = True, split = ' ')
     tokenizer.fit_on_texts(processed_comments)
     X = tokenizer.texts_to_sequences(processed_comments)
@@ -154,4 +158,4 @@ def extract_key_words(df, type):
     
 type = "general"    
 #extract_key_words(load_new('file.csv', amount = 2000, type = type), type)
-extract_key_words(load_from_file('technical_debt_dataset.csv', amount = 2000), type = type)
+extract_key_words(load_from_file('technical_debt_dataset.csv', amount = 400), type = type)
