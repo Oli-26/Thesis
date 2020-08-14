@@ -36,6 +36,58 @@ def group_list(input_list):
         grouped_list[y] = (grouped_list[y][0], grouped_list[y][1], grouped_list[y][2]/grouped_list[y][1])
     return grouped_list
     
+    
+def tokenize_input(df):    
+    # We feed a comment into a trained CNN model to obtain the feature vector X in R(mX1) of this comment in the fully connected layer. Each feature x_i in the feature vector X corresponds to a filter.
+    tokenizer = RegexpTokenizer(r'\w+')
+    processed_comments = []
+    cachedStopWords = stopwords.words("english")
+    for comment in df['commenttext']:
+        tokens = tokenizer.tokenize(comment)
+        text = ' '.join([word for word in tokens if word not in cachedStopWords])
+        processed_comments.append(text)
+    tokenizer = Tokenizer(num_words=None,filters = '!##$%&()*+', lower = True, split = ' ')
+    tokenizer.fit_on_texts(processed_comments)
+    X = tokenizer.texts_to_sequences(processed_comments)
+    X = pad_sequences(X, 1000)
+    # Create reverse word map
+    word_index = tokenizer.word_index
+    reverse_word_map = dict(map(reversed, tokenizer.word_index.items()))
+    return X, reverse_word_map
+    
+def extract_key_words_2(df, name):
+        # Load model 
+    model = keras.models.load_model(name, custom_objects={'get_f1':get_f1}) 
+    model.summary()    
+    # tokenize dataset
+    cachedStopWords = stopwords.words("english")
+    X, rev_map = tokenize_input(df)
+    Y = df['category_id']
+    test1 = Model(model.input, model.layers[1].output)
+    test2 = Model(model.input, model.layers[2].output)
+    # Create map between input and hidden layers
+    cnn_layer = Model(model.input, model.layers[len(model.layers)-9].output) # uni
+    max_pooling_layer = Model(model.input, model.layers[len(model.layers)-7].output) # uni
+    
+    cnn_layer_2 = Model(model.input, model.layers[len(model.layers)-8].output) # bi
+    max_pooling_layer_2 = Model(model.input, model.layers[len(model.layers)-6].output) # bi
+    
+    feature_vector_output = Model(model.input, model.layers[len(model.layers)-3].output)
+    
+    for ticket in X:
+        print(ticket.shape)
+        print(X.shape)
+        test_out_1 = test1.predict(ticket)
+        print(test_out_1.shape)
+        test_out_2 = test2.predict(ticket)
+        print(test_out)
+        return
+    #    cnn_out = cnn_layer.predict(ticket)
+    #    max_pooling = max_pooling_layer.predict(ticket)
+    #    cnn_out_2 = cnn_layer_2.predict(ticket)
+    #    max_pooling_2 = max_pooling_layer_2.predict(ticket)
+    #    feature_vector = feature_vector_output.predict(ticket)
+        
 
 def extract_key_words(df, type):
     print("extracting key words for " + type)
@@ -158,4 +210,5 @@ def extract_key_words(df, type):
     
 type = "general"    
 #extract_key_words(load_new('file.csv', amount = 2000, type = type), type)
-extract_key_words(load_from_file('technical_debt_dataset.csv', amount = 400), type = type)
+#extract_key_words(load_from_file('technical_debt_dataset.csv', amount = 400), type = type)
+extract_key_words_2(load_new('file.csv', amount = 2000, type = type), "m1")

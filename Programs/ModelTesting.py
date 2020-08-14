@@ -18,14 +18,9 @@ def split_data(df):
 def test_model(verbose, model, X_train, X_test, y_train, y_test):
     train_score = float(model.score(X_train, y_train))
     test_score = float(model.score(X_test, y_test))
-    
     y_pred = model.predict(X_test)
-    
     from sklearn.metrics import classification_report, confusion_matrix
-
     print(classification_report(y_test, y_pred))
-    
-    
     if verbose:
         general_predicted = model.predict(X_test)  
         print("Train accuracy = " + str(train_score))
@@ -114,10 +109,4 @@ def compare_all():
         plt.scatter(name_list, listTrain)
         plt.show()
     
-#test_logistic_regression()
-#test_decision_tree()    
-#test_svm()    
-#test_knn()    
-#test_naive_bayes()
-
 #compare_all()
