@@ -131,14 +131,10 @@ def types():
     types = ["general"]  #, "arch", "code", "build", "defect", "design", "documentation", "requirements", "test"]
     average = 0
     embedding_index = load_embeddings()
-    for i in range(0, 10):
+    for i in range(0, len(types)):
         #print("Running for type = " + types[i])
-        average = average + cross_project_validation("general", embedding_index)
-    average = average/10
-    print("-------------------------------------------")
-    print(str(average))
-    print("-------------------------------------------")
-           
+        cross_project_validation("general", embedding_index)
+
 def cross_project_validation(type, embedding_index):
     ## Trains and test CNN multiple times, leaving one project out for testing each time.
     df = load_new('file.csv', amount = 10000, type = type)
@@ -151,7 +147,7 @@ def cross_project_validation(type, embedding_index):
     Models = []
     debt_f1 = []
     num_f1 = []
-    for i in range(0, len(unique)):
+    for i in range(0, 1):
         newDF = df[df['project'] != unique[i]]
         test = df[df['project'] == unique[i]]
         print("Running for test project " + str(unique[i]) + "(" + str(len(test['category_id'])) + "," + str(len(newDF['category_id'])) + ")")
@@ -162,14 +158,12 @@ def cross_project_validation(type, embedding_index):
         num_f1.append(report['1']['support'])
         
     av_debt = 0
-    #for i in range(0, len(debt_f1)):
-    #    av_debt = av_debt + debt_f1[i]*num_f1[i]
-    #av_debt = av_debt / sum(num_f1)    
-    av_debt = debt_f1[0]
+    for i in range(0, len(debt_f1)):
+        av_debt = av_debt + debt_f1[i]*num_f1[i]
+    av_debt = av_debt / sum(num_f1)    
     index = debt_f1.index(max(debt_f1))
     print("Average debt f1 score = " + str(av_debt))
-    #plot(Histories)
-    Models[index].save('m1')
+    Models[index].save('m2')
     return av_debt
 
     
@@ -220,7 +214,9 @@ def train_cnn(df, newDF, test, embedding_index):
     input_shape = Input(shape=(max_words,))
     
     x = layers.Embedding(nb_words, embed_dim, weights = [embedding_matrix])(input_shape)
-    x = layers.Reshape((max_words, embed_dim, 1))(x)
+    x = layers.Reshape(target_shape = (max_words, embed_dim, 1), input_shape=(max_words, embed_dim))(x)
+    
+
     #x = layers.Dropout(rate = 0.001)(x)        
     
     ## Branch 1 (Unigram)

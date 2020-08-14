@@ -56,15 +56,15 @@ def tokenize_input(df):
     return X, reverse_word_map
     
 def extract_key_words_2(df, name):
-        # Load model 
+    # Load model 
     model = keras.models.load_model(name, custom_objects={'get_f1':get_f1}) 
     model.summary()    
-    # tokenize dataset
-    cachedStopWords = stopwords.words("english")
+
     X, rev_map = tokenize_input(df)
-    Y = df['category_id']
+    test0 = Model(model.input, model.layers[0].output)
     test1 = Model(model.input, model.layers[1].output)
     test2 = Model(model.input, model.layers[2].output)
+    
     # Create map between input and hidden layers
     cnn_layer = Model(model.input, model.layers[len(model.layers)-9].output) # uni
     max_pooling_layer = Model(model.input, model.layers[len(model.layers)-7].output) # uni
@@ -74,9 +74,12 @@ def extract_key_words_2(df, name):
     
     feature_vector_output = Model(model.input, model.layers[len(model.layers)-3].output)
     
+    
     for ticket in X:
         print(ticket.shape)
         print(X.shape)
+        test_out_0 = test0.predict(ticket)
+        print(test_out_0.shape)
         test_out_1 = test1.predict(ticket)
         print(test_out_1.shape)
         test_out_2 = test2.predict(ticket)
@@ -211,4 +214,4 @@ def extract_key_words(df, type):
 type = "general"    
 #extract_key_words(load_new('file.csv', amount = 2000, type = type), type)
 #extract_key_words(load_from_file('technical_debt_dataset.csv', amount = 400), type = type)
-extract_key_words_2(load_new('file.csv', amount = 2000, type = type), "m1")
+extract_key_words_2(load_new('file.csv', amount = 2000, type = type), "m2")
