@@ -1,5 +1,5 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
 from keras.models import Sequential
 from keras import layers, Input, Model
@@ -131,15 +131,17 @@ def types():
     types = ["general"]  #, "arch", "code", "build", "defect", "design", "documentation", "requirements", "test"]
     average = 0
     embedding_index = load_embeddings()
-    for i in range(0, len(types)):
+    ave = 0
+    for i in range(0, 8):
         #print("Running for type = " + types[i])
-        cross_project_validation("general", embedding_index)
+        ave = ave + cross_project_validation("general", embedding_index)
+    ave = ave/8
+    print("------------:  " + str(ave) + "  :------------")
 
 def cross_project_validation(type, embedding_index):
     ## Trains and test CNN multiple times, leaving one project out for testing each time.
-    df = load_new('file.csv', amount = 10000, type = type)
-    print(df)
-    #df = load_from_file('technical_debt_dataset.csv', amount = 100000, type = type)
+    #df = load_new('file.csv', amount = 10000, type = type)
+    df = load_from_file('technical_debt_dataset.csv', amount = 100000, type = type)
     
     unique = np.unique(df['project'])
 
@@ -163,11 +165,13 @@ def cross_project_validation(type, embedding_index):
     av_debt = av_debt / sum(num_f1)    
     index = debt_f1.index(max(debt_f1))
     print("Average debt f1 score = " + str(av_debt))
-    Models[index].save('m2')
+    
+    Models[index].save('olddata')
     return av_debt
 
     
-def train_cnn(df, newDF, test, embedding_index):  
+def train_cnn(df, newDF, test, embedding_index): 
+    K.clear_session()
     embed_dim = 300
     max_words = 1000
     filters = 300
@@ -231,15 +235,15 @@ def train_cnn(df, newDF, test, embedding_index):
     
     ## Gather branches
     x = layers.Concatenate(axis=1)([y, z])
-    x = layers.Dense(1)(x)
+    #x = layers.Dense(1)(x)
     x = (layers.Dense(Global_y.shape[1], activation='sigmoid'))(x)
    
     model = Model(input_shape,x)  
     callback = EarlyStopping(patience=2)
     model.compile(loss='binary_crossentropy', optimizer= 'adam',  metrics=[get_f1])
-    history = model.fit(X_train, y_train, epochs=15, batch_size=36, verbose = False ,callbacks=[callback], validation_data = (X_val, y_val))
+    history = model.fit(X_train, y_train, epochs=15, batch_size=32, verbose = True ,callbacks=[callback], validation_data = (X_val, y_val))
     
-    print(model.summary())
+    #print(model.summary())
     report = classification(model, X_test, y_test)
     
     #print(report)
@@ -269,7 +273,7 @@ def plot(historys):
         i = i +1
     plt.show()
 
-
+K.clear_session()
 #train_mlp()
 #train_cnn()  
 #types()  
